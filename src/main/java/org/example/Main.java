@@ -74,11 +74,12 @@ public class Main {
 
                 if (attacker == player) { // Player's turn
                     boolean cancelAttack = false;
+                    int playerInventorySize = player.getInventory().size();
                     while (true) {
-                        if (player.getInventory().size() > 1) {
+                        if (playerInventorySize > 1) {
 
                             System.out.print("-Inventory-\nIndex Name MAX.DMG\n");
-                            for (int j = 0; j < player.getInventory().size(); j++) {
+                            for (int j = 0; j < playerInventorySize; j++) {
                                 Weapon listItem = player.getInventory().get(j);
                                 System.out.printf("[%d] %s %d\n",
                                         j + 1,
@@ -93,12 +94,13 @@ public class Main {
                                 cancelAttack = true;
                                 break;
                             } else {
-                                try {
-                                    int weaponIndex = Integer.parseInt(userInput) - 1;
-                                    // Select weapon from inventory
+                                // Select weapon from inventory
+                                int weaponIndex = Integer.parseInt(userInput) - 1;
+                                // Check with regex if selected inventory index is in a valid range
+                                if (Integer.toString(weaponIndex).matches(String.format("([0-%d])", (playerInventorySize - 1)))) {
                                     player.setEquippedWeapon(player.getInventory().get(weaponIndex));
                                     break;
-                                } catch (NumberFormatException e) {
+                                } else {
                                     System.out.println("Invalid input! Enter a valid index number.");
                                 }
                             }
