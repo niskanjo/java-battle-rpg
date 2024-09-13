@@ -27,8 +27,7 @@ public class Main {
         if (saveFileExists) {
             System.out.println("You have an existing save file.");
             System.out.print(player.getStats());
-            System.out.println("Would you like to continue from your previous session? (Y/N)");
-            while (true) {
+            /*while (true) {
                 String userInput = scanner.nextLine();
                 if (userInput.equalsIgnoreCase("Y")) {
                     // Save file is loaded by default
@@ -40,13 +39,26 @@ public class Main {
                 } else {
                     System.out.println("Invalid input, please enter a valid character (Y/N).");
                 }
+            }*/
+            // Accept only characters Y or N, case-insensitive
+            String inputLoadSave = UiUtils.validateInput("(?i)[YN]",
+                    "Would you like to continue from your previous session? (Y/N)",
+                    "Invalid input, please enter a valid character (Y/N).");
+
+            // Act accordingly to user input
+            if (inputLoadSave.equalsIgnoreCase("Y")) {
+                // Save file is loaded by default
+                System.out.print("Save file loaded.\n");
+            } else {
+                // Generate new player
+                player = newPlayer();
             }
         }
 
         System.out.printf("Welcome, %s. Let the Battle Begin!\n", player.getName());
 
         // Main game loop
-        while (true) { // Loop condition acts as failsafe if break statement somehow fails
+        while (true) {
 
             // NPC character
             GameCharacter npc = Npc.spawnNpc();
@@ -75,52 +87,45 @@ public class Main {
                 if (attacker == player) { // Player's turn
                     boolean cancelAttack = false;
                     int playerInventorySize = player.getInventory().size();
-                    while (true) {
-                        if (playerInventorySize > 1) {
 
-                            System.out.print("-Inventory-\nIndex Name MAX.DMG\n");
-                            for (int j = 0; j < playerInventorySize; j++) {
-                                Weapon listItem = player.getInventory().get(j);
-                                System.out.printf("[%d] %s %d\n",
-                                        j + 1,
-                                        listItem.getName(),
-                                        listItem.getDamage()
-                                );
-                            }
-
-                            System.out.println("Your turn. Choose a weapon to attack with (enter index number) or flee (q)?");
-                            String userInput = scanner.nextLine();
-                            if (userInput.equalsIgnoreCase("Q")) {
-                                cancelAttack = true;
-                                break;
-                            } else {
-                                // Select weapon from inventory
-                                int weaponIndex = Integer.parseInt(userInput) - 1;
-                                // Check with regex if selected inventory index is in a valid range
-                                if (Integer.toString(weaponIndex).matches(String.format("([0-%d])", (playerInventorySize - 1)))) {
-                                    player.setEquippedWeapon(player.getInventory().get(weaponIndex));
-                                    break;
-                                } else {
-                                    System.out.println("Invalid input! Enter a valid index number.");
-                                }
-                            }
-
+                    if (playerInventorySize > 1) {
+                        // Execute if player has more than one (1) item in the inventory
+                        System.out.print("-Inventory-\nIndex Name MAX.DMG\n");
+                        for (int j = 0; j < playerInventorySize; j++) {
+                            Weapon listItem = player.getInventory().get(j);
+                            System.out.printf("[%d] %s %d\n",
+                                    j + 1,
+                                    listItem.getName(),
+                                    listItem.getDamage()
+                            );
+                        }
+                        // Check with regex if selected inventory index is in a valid range
+                        String validInventoryPattern = String.format("(?i)[1-%d]|Q", playerInventorySize);
+                        String userInput = UiUtils.validateInput(validInventoryPattern,
+                                "Your turn. Choose a weapon to attack with (enter index number) or flee (q)?",
+                                "Invalid input! Please enter a valid character (index number or \"q\").");
+                        if (userInput.equalsIgnoreCase("Q")) {
+                            cancelAttack = true;
                         } else {
+                            // Select weapon from inventory
+                            int weaponIndex = Integer.parseInt(userInput);
+                            player.setEquippedWeapon(player.getInventory().get(weaponIndex - 1));
+                        }
+
+                    } else {
                             /* Prints if there is only one weapon stashed in the inventory...
                         ...meaning that the inventory will NOT be printed as it is redundant
                          */
-                            System.out.printf("You are equipped with a %s with a max damage of %d.\n",
-                                    player.getEquippedWeapon().getName(),
-                                    player.getEquippedWeapon().getDamage()
-                            );
-                            System.out.println("Will you attack with this weapon (Enter) or flee (q)?");
-                            String userInput = scanner.nextLine();
-                            if (userInput.equalsIgnoreCase("Q")) {
-                                cancelAttack = true;
-                            }
-                            break;
-                        }
+                        System.out.printf("You are equipped with a %s with a max damage of %d.\n",
+                                player.getEquippedWeapon().getName(),
+                                player.getEquippedWeapon().getDamage()
+                        );
 
+                        System.out.println("Will you attack with this weapon (Enter) or flee (q)?");
+                        String userInput = scanner.nextLine();
+                        if (userInput.equalsIgnoreCase("Q")) {
+                            cancelAttack = true;
+                        }
                     }
                     if (cancelAttack) {
                         // Cancel attack and exit battle loop
@@ -152,25 +157,18 @@ public class Main {
                         // Increment battles won
                         player.incBattlesWon();
                         // Prompt pickup of weapon
-                        while (true) {
-                            System.out.printf("Do you wish to add %s (DMG %d) to your inventory? (y/n)\n", npc.getEquippedWeapon().getName(), npc.getEquippedWeapon().getDamage());
-                            //scanner.nextLine(); // Consume newline character
-                            String userInput = scanner.nextLine();
-                            if (userInput.equalsIgnoreCase("N")) {
-                                // Leave enemy weapon behind
-                                System.out.printf("You choose to leave the %s behind.\n", npc.getEquippedWeapon().getName());
+                        String userInput = UiUtils.validateInput("(?i)Y|N",
+                                    String.format("Do you wish to add %s (DMG %d) to your inventory? (y/n)", npc.getEquippedWeapon().getName(), npc.getEquippedWeapon().getDamage()),
+                                    "Invalid input! Please enter a valid character. (y/n)");
 
-                                break;
-                            } else if (userInput.equalsIgnoreCase("Y")) {
-                                // Add weapon to inventory
-                                player.addToInventory(npc.getEquippedWeapon());
-                                System.out.printf("%s (DMG %d) added to inventory.\n", npc.getEquippedWeapon().getName(), npc.getEquippedWeapon().getDamage());
-
-                                break;
-                            } else {
-                                // Respond to invalid input
-                                System.out.print("Invalid input, please enter (Y/N)\n");
-                            }
+                        if (userInput.equalsIgnoreCase("N")) {
+                            // Leave enemy weapon behind
+                            System.out.printf("You choose to leave the %s behind.\n", npc.getEquippedWeapon().getName());
+                            break;
+                        } else if (userInput.equalsIgnoreCase("Y")) {
+                            // Add weapon to inventory
+                            player.addToInventory(npc.getEquippedWeapon());
+                            System.out.printf("%s (DMG %d) added to inventory.\n", npc.getEquippedWeapon().getName(), npc.getEquippedWeapon().getDamage());
                         }
                     }
                 }
@@ -196,9 +194,11 @@ public class Main {
             System.out.println(player.getStats());
 
             // Prompt continue / quit
-            System.out.println("Do you wish to continue playing (Enter) or quit (q)?");
+            String userInput = UiUtils.validateInput("(?i)Y|N",
+                    "Do you wish to continue playing (y/n)?",
+                    "Invalid input! Please enter a valid character (y/n).");
 
-            if (scanner.nextLine().equalsIgnoreCase("Q")) {
+            if (userInput.equalsIgnoreCase("N")) {
                 // Save progress to file
                 FileUtils.saveObject(player, saveFile);
                 System.out.println("Farewell traveler, until we meet again!");
